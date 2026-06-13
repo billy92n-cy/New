@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════════
 //  GEMINI — Moteur IA unique de l'application
 // ══════════════════════════════════════════════════
-const GEMINI_KEY = 'AIzaSyAb8RN6Jxrrq7Te8iyhnqNqnHw3ZEey-six8X1Ivxa9KsXKbqvA';
+const GEMINI_KEY = 'AQ.Ab8RN6Kpyp8c08Fbegx0--FguKTT2C50YMVqd94uFOt4OdbNfQ';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
 
 /**
@@ -11,15 +11,29 @@ const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemi
  * @returns {Promise<string>} texte généré
  */
 async function callGemini(prompt, { maxTokens = 600, temperature = 0.4 } = {}) {
-  const resp = await fetch(GEMINI_URL, {
+  // Support des deux formats de clé Google AI Studio :
+  // - Ancien format : AIzaSy... → clé dans l'URL (?key=...)
+  // - Nouveau format : AQ. → clé dans le header Authorization
+  const isNewFormat = GEMINI_KEY.startsWith('AQ.');
+  const url = isNewFormat
+    ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
+    : GEMINI_URL;
+  const headers = isNewFormat
+    ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GEMINI_KEY}` }
+    : { 'Content-Type': 'application/json' };
+
+  const resp = await fetch(isNewFormat ? url : GEMINI_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: { maxOutputTokens: maxTokens, temperature },
     }),
   });
-  if (!resp.ok) throw new Error(`Gemini ${resp.status}`);
+  if (!resp.ok) {
+    const err = await resp.text().catch(() => '');
+    throw new Error(`Gemini ${resp.status}: ${err.slice(0, 120)}`);
+  }
   const data = await resp.json();
   const text = data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
   if (!text) throw new Error('Réponse Gemini vide');
@@ -129,7 +143,13 @@ const WOD_IA = {
       this._set('wod_coach_conn', html);
       this._set('wod_coach_conn_ts', Date.now().toString());
     } catch(e) {
-      el.innerHTML = '<div style="font-size:.75rem;color:var(--text-dim);">Coach connexion temporairement indisponible.</div>';
+      console.error('[WOD_IA] Coach connexion:', arguments[0]);
+      const h = new Date().getHours();
+      const tip = h >= 7 && h <= 9 ? 'Heure de pointe — Gares et zones bureaux recommandées.'
+        : h >= 17 && h <= 20 ? 'Rush soir — La Défense et grandes gares prioritaires.'
+        : h >= 20 ? 'Soirée — Bercy, Bastille, Grands Boulevards.'
+        : 'Positionnez-vous près des aéroports ou gares centrales.';
+      el.innerHTML = '<div style="font-size:.78rem;color:var(--text);line-height:1.6;">💡 ' + tip + '</div>';
     }
   },
 
@@ -197,7 +217,29 @@ const WOD_IA = {
       this._set('wod_planning', html);
       this._set('wod_planning_ts', Date.now().toString());
     } catch(e) {
-      el.innerHTML = '<div style="font-size:.75rem;color:var(--text-dim);">Planning temporairement indisponible.</div>';
+      console.error('[WOD_IA] Planning:', e.message);
+      // Fallback statique basé sur heure actuelle
+      const h = new Date().getHours();
+      const debutOpt = h < 7 ? '07h00' : h < 14 ? 'Maintenant' : h < 17 ? '17h00' : 'Maintenant';
+      const zones = h >= 7 && h <= 9 ? 'Gares (CDG, Gare du Nord, Gare de Lyon)'
+        : h >= 12 && h <= 14 ? 'Centre Paris, Opéra, Châtelet'
+        : h >= 17 && h <= 20 ? 'La Défense, Gares, zones bureaux'
+        : h >= 20 ? 'Bercy, Grands Boulevards, Bastille' : 'Zones aéroports';
+      const obj = d.goals?.day || '—';
+      el.innerHTML = [
+        '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);">',
+        '<span style="font-size:1.3rem;">🕐</span><div>',
+        '<div style="font-size:.6rem;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Début conseillé</div>',
+        '<div style="font-size:.85rem;font-weight:700;">' + debutOpt + '</div></div></div>',
+        '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);">',
+        '<span style="font-size:1.3rem;">📍</span><div>',
+        '<div style="font-size:.6rem;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Zones prioritaires</div>',
+        '<div style="font-size:.82rem;">' + zones + '</div></div></div>',
+        '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;">',
+        '<span style="font-size:1.3rem;">🎯</span><div>',
+        '<div style="font-size:.6rem;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Objectif journalier</div>',
+        '<div style="font-size:.85rem;font-weight:700;">' + obj + ' €</div></div></div>',
+      ].join('');
     }
   },
 
