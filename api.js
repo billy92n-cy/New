@@ -1585,7 +1585,27 @@ function injectContainers() {
     rushScroll.append(d);
   }
 
-
+  // 5. Vols ADP (remplace AviationStack)
+  if (!el('flights-cdg')) {
+    const d = document.createElement('div'); d.className = 'card'; d.style.marginBottom = '12px';
+    d.innerHTML = `
+      <div style="margin-bottom:10px;">
+        <div class="card-row-hd">
+          <span class="card-title">✈️ Vols en temps réel <span style="font-size:9px;color:var(--text-dim);">Open Data ADP</span></span>
+          <div style="display:flex;gap:6px;">
+            <button class="ef-btn active" onclick="selectAirport('CDG',this)">CDG</button>
+            <button class="ef-btn" onclick="selectAirport('ORY',this)">Orly</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:8px;">
+          <button class="ef-btn active" onclick="selectFlightType('arr',this)" id="ft-arr">Arrivées</button>
+          <button class="ef-btn" onclick="selectFlightType('dep',this)" id="ft-dep">Départs</button>
+        </div>
+      </div>
+      <div id="flights-cdg"></div>
+      <div id="flights-ory" style="display:none;"></div>`;
+    rushScroll.append(d);
+  }
 
   // 6. IA Zones (page home)
   const homeScroll = document.querySelector('#screen-home .screen-scroll');

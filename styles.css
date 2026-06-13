@@ -964,24 +964,8 @@ select.fi { -webkit-appearance:none; }
   color:var(--gold); flex-shrink:0;
 }
 .ia-projections { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:12px; }
-.proj-card {
-  background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06);
-  border-radius:12px; padding:10px 8px; text-align:center;
-}
-.proj-lbl { font-size:.56rem; color:var(--text2); text-transform:uppercase; letter-spacing:.06em; }
-.proj-val { font-family:'Cinzel',serif; font-size:1rem; font-weight:700; color:var(--gold); margin-top:3px; }
-.proj-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
 
-/* Trip items dans historique */
-.trip-item {
-  display:flex; align-items:center; gap:10px;
-  padding:10px 12px;
-  background:rgba(255,255,255,.03);
-  border:1px solid rgba(255,255,255,.06);
-  border-radius:12px; margin-bottom:4px;
-  transition:var(--t);
-  animation:tripFadeIn .3s ease both;
-}
+
 @keyframes tripFadeIn {
   from { opacity:0; transform:translateY(4px); }
   to   { opacity:1; transform:translateY(0); }
@@ -994,65 +978,3 @@ select.fi { -webkit-appearance:none; }
 /* ── Toggle historique ── */
 #hist-toggle-btn svg { transition: transform .25s ease; }
 
-/* ── Coach IA lignes améliorées ── */
-.ia-coach-lines { display: flex; flex-direction: column; gap: 0; }
-.ia-line {
-  display: flex; flex-direction: column; gap: 2px;
-  padding: 10px 0;
-  border-bottom: 1px solid rgba(255,255,255,.04);
-  transition: opacity .3s;
-}
-.ia-line:last-child { border-bottom: none; }
-.ia-line-label {
-  font-size: .58rem; font-weight: 800; letter-spacing: .1em;
-  text-transform: uppercase; color: var(--gold); opacity: .7;
-}
-.ia-line-text {
-  font-size: .78rem; line-height: 1.55; color: var(--text2);
-}
-.ia-line.active .ia-line-text { color: var(--text); }
-
-/* ── Widget Performances & Carburant — grille 2x2 ── */
-.perf-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 10px;
-}
-.perf-tile {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 14px 10px;
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.07);
-  border-radius: 14px;
-  text-align: center;
-}
-.perf-tile-ico {
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-  color: var(--gold);
-  opacity: .65;
-}
-.perf-tile-ico svg {
-  width: 22px;
-  height: 22px;
-  display: block;
-}
-.perf-tile-val {
-  font-family: 'Cinzel', serif;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1;
-}
-.perf-tile-lbl {
-  font-size: .52rem;
-  color: var(--text2);
-  text-transform: uppercase;
-  letter-spacing: .08em;
-}

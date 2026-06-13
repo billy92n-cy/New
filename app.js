@@ -2,7 +2,7 @@
 //  GEMINI — Moteur IA unique de l'application
 // ══════════════════════════════════════════════════
 const GEMINI_KEY = 'AIzaSyAb8RN6Jxrrq7Te8iyhnqNqnHw3ZEey-six8X1Ivxa9KsXKbqvA';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
 
 /**
  * Appel Gemini Flash 2.0 — helper central
@@ -159,12 +159,15 @@ const WOD_IA = {
 
     const coursesNeeded = d.avgTrip > 0 ? Math.ceil((d.goals.day - d.dayGain) / d.avgTrip) : '?';
     const prompt = [
-      `Chauffeur VTC Paris. ${d.jour} ${d.h}h. Objectif jour : ${d.goals.day}€. Déjà gagné : ${d.dayGain.toFixed(2)}€.`,
-      `Moyenne/course : ${d.avgTrip.toFixed(2)}€. Meilleure heure historique : ${d.bestH}h.`,
-      `Il lui faut encore environ ${coursesNeeded} courses. Véhicule ${d.vehType}.`,
-      'Génère un planning en JSON strict :',
-      '{"debut":"HHhMM","fin_estimee":"HHhMM","courses_restantes":N,"zones":["zone1","zone2"],"tip":"conseil 1 phrase"}',
-      'Rien d\'autre que le JSON.',
+      `Tu es expert VTC Paris. Aujourd'hui : ${d.jour} ${d.h}h. Véhicule ${d.vehType}.`,
+      `Objectif journalier : ${d.goals.day}€. Déjà gagné : ${d.dayGain.toFixed(2)}€. Courses restantes estimées : ${coursesNeeded}.`,
+      "Génère un planning VTC optimal pour AUJOURD'HUI basé sur :",
+      "- Tes connaissances des événements typiques à Paris ce jour de la semaine (concerts, matchs PSG, salons, Roland Garros, fashion week, etc.)",
+      "- Les patterns de trafic IDF connus pour ce jour et cette heure",
+      "- Les zones de forte demande VTC selon le créneau horaire actuel",
+      "- La météo saisonnière probable et son impact sur la demande",
+      "Reponds UNIQUEMENT en JSON strict, sans markdown ni texte autour :",
+      '{"debut":"HHhMM","fin_estimee":"HHhMM","courses_restantes":N,"zones":["zone1","zone2","zone3"],"tip":"conseil précis et actionnable basé sur les events du jour"}',
     ].join(' ');
 
     try {
@@ -2582,9 +2585,15 @@ const HOME = {
       // Mise en valeur des chiffres/montants en or
       const formatted = text.replace(/(\d+[,.]?\d*\s*[€%]|\.\d+\s*€\/[a-zéèê]+)/g,
         '<strong style="color:var(--gold);font-weight:700;">$1</strong>');
-      const textEl = el.querySelector('.ia-line-text');
-      if (textEl) { textEl.innerHTML = formatted; }
-      else { el.innerHTML = formatted; }
+      // Toujours cibler .ia-line-text — ne JAMAIS écraser la structure parente
+      let textEl = el.querySelector('.ia-line-text');
+      if (!textEl) {
+        // Reconstruire si corrompue
+        const lbl = {'ia-line-revenus':'Revenus','ia-line-zones':'Zones','ia-line-carbu':'Carburant','ia-line-motivation':'Motivation','ia-line-restant':'Restant'}[id] || '';
+        el.innerHTML = (lbl ? `<span class="ia-line-label">${lbl}</span>` : '') + `<span class="ia-line-text"></span>`;
+        textEl = el.querySelector('.ia-line-text');
+      }
+      textEl.innerHTML = formatted;
       el.classList.add('active');
     };
 
@@ -2689,18 +2698,7 @@ const HOME = {
   },
 
   _renderProjections(avgPerTrip, tripsCount) {
-    const projEl = $('ia-projections'); if (!projEl || tripsCount === 0) return;
-    const elapsed = Math.max(1, getElapsedDays());
-    const tpd     = tripsCount / elapsed;
-    const projD   = avgPerTrip * tpd;
-    const projW   = projD * 7;
-    const projM   = projD * 30;
-    projEl.innerHTML = `
-      <div class="proj-card"><div class="proj-lbl">Projection/jour</div><div class="proj-val">${formatEuro(projD)}</div></div>
-      <div class="proj-card"><div class="proj-lbl">Projection/semaine</div><div class="proj-val">${formatEuro(projW)}</div></div>
-      <div class="proj-card"><div class="proj-lbl">Projection/mois</div><div class="proj-val">${formatEuro(projM)}</div></div>`;
-    if ($('stats-projections')) $('stats-projections').innerHTML = projEl.innerHTML;
-
+    // Projections supprimées — widget Performances & Carburant uniquement
     // Alimenter widget Performances & Carburant (mis à jour à chaque recalcul)
     const _conso = parseFloat(ls('wob_conso')) || 6.5;
     const _prix  = parseFloat(ls('wob_prix'))  || 1.85;
