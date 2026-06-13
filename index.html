@@ -287,7 +287,7 @@
           </button>
         </div>
 
-        <!-- Météo -->
+        <!-- 2. MÉTÉO & IMPACT VTC -->
         <div class="glass-card">
           <div class="glass-card-hd">
             <span class="glass-card-title">Météo & Impact VTC</span>
@@ -298,7 +298,7 @@
           <div id="meteo-container"><div class="list-item info">Chargement météo...</div></div>
         </div>
 
-        <!-- Carte Leaflet — zones chaudes Gemini -->
+        <!-- 3. CARTE IDF — Zones chaudes -->
         <div class="glass-card map-card">
           <div class="glass-card-hd">
             <span class="glass-card-title">Carte IDF — Zones chaudes</span>
@@ -340,7 +340,7 @@
           <div id="navitia-container"><div class="list-item info">Chargement alertes TC...</div></div>
         </div>
 
-        <!-- 6. IA ÉVÉNEMENTS PARIS — Gemini, cache 24h -->
+        <!-- 6. IA ÉVÉNEMENTS PARIS — Gemini 24h -->
         <div class="glass-card">
           <div class="glass-card-hd">
             <div class="glass-card-icon gold-icon">
@@ -355,18 +355,24 @@
           <div id="ia-events-list" class="dyn-list"><div class="list-item info">Analyse en cours...</div></div>
         </div>
 
-        <!-- 7. VOLS EN TEMPS RÉEL -->
-        <div class="glass-card" id="card-vols">
+        <!-- 7. VOLS EN TEMPS RÉEL (injecté par api.js avec flights-cdg/ory) -->
+        <div class="glass-card" id="card-vols-static">
           <div class="glass-card-hd">
             <div class="glass-card-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2L15 22l-4-9-9-4 20-7z"/></svg>
             </div>
-            <span class="glass-card-title">Vols en temps réel</span>
-            <button class="btn-ghost-sm" onclick="if(window.ADP_WOD)ADP_WOD.load()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.93"/></svg>
-            </button>
+            <span class="glass-card-title">Vols en temps réel <span style="font-size:9px;color:var(--text-dim);">Open Data ADP</span></span>
+            <div style="display:flex;gap:6px;">
+              <button class="ef-btn active" onclick="selectAirport('CDG',this)">CDG</button>
+              <button class="ef-btn" onclick="selectAirport('ORY',this)">Orly</button>
+            </div>
           </div>
-          <div id="adp-container"><div class="list-item info">Chargement vols...</div></div>
+          <div style="display:flex;gap:6px;margin-bottom:8px;">
+            <button class="ef-btn active" onclick="selectFlightType('arr',this)" id="ft-arr">Arrivées</button>
+            <button class="ef-btn" onclick="selectFlightType('dep',this)" id="ft-dep">Départs</button>
+          </div>
+          <div id="flights-cdg"><div class="list-item info">Chargement vols CDG...</div></div>
+          <div id="flights-ory" style="display:none;"></div>
         </div>
 
       </div>
