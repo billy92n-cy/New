@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════════
 //  GEMINI — Moteur IA unique de l'application
 // ══════════════════════════════════════════════════
-const GEMINI_KEY = 'AQ.Ab8RN6Kpyp8c08Fbegx0--FguKTT2C50YMVqd94uFOt4OdbNfQ';
+const GEMINI_KEY = 'AIzaSyAb8RN6Jxrrq7Te8iyhnqNqnHw3ZEey-six8X1Ivxa9KsXKbqvA';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
 
 /**
@@ -11,33 +11,27 @@ const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemi
  * @returns {Promise<string>} texte généré
  */
 async function callGemini(prompt, { maxTokens = 600, temperature = 0.4 } = {}) {
-  // Support des deux formats de clé Google AI Studio :
-  // - Ancien format : AIzaSy... → clé dans l'URL (?key=...)
-  // - Nouveau format : AQ. → clé dans le header Authorization
-  const isNewFormat = GEMINI_KEY.startsWith('AQ.');
-  const url = isNewFormat
-    ? 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
-    : GEMINI_URL;
-  const headers = isNewFormat
-    ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GEMINI_KEY}` }
-    : { 'Content-Type': 'application/json' };
-
-  const resp = await fetch(isNewFormat ? url : GEMINI_URL, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { maxOutputTokens: maxTokens, temperature },
-    }),
+  const BASE = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+  const body = JSON.stringify({
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { maxOutputTokens: maxTokens, temperature },
   });
-  if (!resp.ok) {
-    const err = await resp.text().catch(() => '');
-    throw new Error(`Gemini ${resp.status}: ${err.slice(0, 120)}`);
+  // Essai 1 : clé en query param (fonctionne avec AIzaSy et AQ.)
+  // Essai 2 : header x-goog-api-key (OAuth Google)
+  const attempts = [
+    { url: BASE + '?key=' + GEMINI_KEY, hdrs: { 'Content-Type': 'application/json' } },
+    { url: BASE, hdrs: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY } },
+  ];
+  for (const { url, hdrs } of attempts) {
+    try {
+      const resp = await fetch(url, { method: 'POST', headers: hdrs, body });
+      if (!resp.ok) { console.warn('[Gemini]', resp.status, url.slice(-20)); continue; }
+      const data = await resp.json();
+      const text = data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+      if (text) return text;
+    } catch(e) { console.warn('[Gemini] erreur:', e.message); }
   }
-  const data = await resp.json();
-  const text = data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
-  if (!text) throw new Error('Réponse Gemini vide');
-  return text;
+  throw new Error('Gemini indisponible — vérifiez la clé API');
 }
 
 
@@ -143,13 +137,7 @@ const WOD_IA = {
       this._set('wod_coach_conn', html);
       this._set('wod_coach_conn_ts', Date.now().toString());
     } catch(e) {
-      console.error('[WOD_IA] Coach connexion:', arguments[0]);
-      const h = new Date().getHours();
-      const tip = h >= 7 && h <= 9 ? 'Heure de pointe — Gares et zones bureaux recommandées.'
-        : h >= 17 && h <= 20 ? 'Rush soir — La Défense et grandes gares prioritaires.'
-        : h >= 20 ? 'Soirée — Bercy, Bastille, Grands Boulevards.'
-        : 'Positionnez-vous près des aéroports ou gares centrales.';
-      el.innerHTML = '<div style="font-size:.78rem;color:var(--text);line-height:1.6;">💡 ' + tip + '</div>';
+      el.innerHTML = '<div style="font-size:.75rem;color:var(--text-dim);">Coach connexion temporairement indisponible.</div>';
     }
   },
 
@@ -217,29 +205,7 @@ const WOD_IA = {
       this._set('wod_planning', html);
       this._set('wod_planning_ts', Date.now().toString());
     } catch(e) {
-      console.error('[WOD_IA] Planning:', e.message);
-      // Fallback statique basé sur heure actuelle
-      const h = new Date().getHours();
-      const debutOpt = h < 7 ? '07h00' : h < 14 ? 'Maintenant' : h < 17 ? '17h00' : 'Maintenant';
-      const zones = h >= 7 && h <= 9 ? 'Gares (CDG, Gare du Nord, Gare de Lyon)'
-        : h >= 12 && h <= 14 ? 'Centre Paris, Opéra, Châtelet'
-        : h >= 17 && h <= 20 ? 'La Défense, Gares, zones bureaux'
-        : h >= 20 ? 'Bercy, Grands Boulevards, Bastille' : 'Zones aéroports';
-      const obj = d.goals?.day || '—';
-      el.innerHTML = [
-        '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);">',
-        '<span style="font-size:1.3rem;">🕐</span><div>',
-        '<div style="font-size:.6rem;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Début conseillé</div>',
-        '<div style="font-size:.85rem;font-weight:700;">' + debutOpt + '</div></div></div>',
-        '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);">',
-        '<span style="font-size:1.3rem;">📍</span><div>',
-        '<div style="font-size:.6rem;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Zones prioritaires</div>',
-        '<div style="font-size:.82rem;">' + zones + '</div></div></div>',
-        '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;">',
-        '<span style="font-size:1.3rem;">🎯</span><div>',
-        '<div style="font-size:.6rem;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:.07em;">Objectif journalier</div>',
-        '<div style="font-size:.85rem;font-weight:700;">' + obj + ' €</div></div></div>',
-      ].join('');
+      el.innerHTML = '<div style="font-size:.75rem;color:var(--text-dim);">Planning temporairement indisponible.</div>';
     }
   },
 
@@ -738,8 +704,23 @@ function restoreAll() {
   renderDocsHistory();
   updateNotifBadge();
 
-  const iaText = ls('wob_ia');
-  if (iaText && $('ia-report')) $('ia-report').textContent = iaText;
+  // wob_ia obsolète — le coach IA est géré par generateCoachReport + wob_ia_lines
+  // Ne plus écrire dans #ia-report directement (détruit la structure HTML)
+  const cachedLines = ls('wob_ia_lines');
+  if (cachedLines) {
+    try {
+      const lines = JSON.parse(cachedLines);
+      const set = (id, text) => {
+        const el = $(id); if (!el) return;
+        const t = el.querySelector('.ia-line-text');
+        if (t) t.textContent = text;
+      };
+      set('ia-line-revenus',    lines.revenus    || '');
+      set('ia-line-zones',      lines.zones      || '');
+      set('ia-line-carbu',      lines.carburant  || '');
+      set('ia-line-motivation', lines.motivation || '');
+    } catch(e) {}
+  }
 
   ['uber','bolt'].forEach(p => {
     const v = ls(`wob_status_${p}`);
@@ -919,6 +900,24 @@ function refreshCharts() {
   setText('kpi-avg',   formatEuro(avg));
   setText('kpi-rate',  `${pct}%`);
   setText('kpi-hours', `${Math.round(state.totalKm/30)}h`);
+
+  // ── Widget Performances & Carburant — autonome, basé sur les courses ──
+  (function updatePerfTiles() {
+    const conso  = parseFloat(ls('wob_conso')) || 6.5;
+    const pCarb  = parseFloat(ls('wob_prix'))  || 1.85;
+    const km     = state.totalKm || 0;
+    const mins   = state.sessions.reduce((s, t) => s + (t.duree || 0), 0);
+    const gain   = state.totalGain || 0;
+    const fuelL  = km * (conso / 100);
+    const fuelE  = fuelL * pCarb;
+    const hrly   = mins > 0 ? (gain / mins) * 60 : 0;
+    const ratioK = km  > 0 ? gain / km : 0;
+    const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+    set('perf-hourly',    hrly   > 0 ? hrly.toFixed(1)   + ' €' : '—');
+    set('perf-fuel-cost', fuelE  > 0 ? fuelE.toFixed(2)  + ' €' : '—');
+    set('perf-fuel-l',    fuelL  > 0 ? fuelL.toFixed(1)  + ' L' : '—');
+    set('perf-ratio-km',  ratioK > 0 ? ratioK.toFixed(2) + ' €' : '—');
+  })();
 
   // Revenus bar
   const c1 = $('canvas-revenus');
@@ -2697,6 +2696,7 @@ const HOME = {
         if (match) {
           lines = JSON.parse(match[0]);
           setLS(cacheKey,  JSON.stringify(lines));
+          setLS('wob_ia_lines', JSON.stringify(lines)); // Cache restauration propre
           setLS(cacheTs,   Date.now().toString());
           setLS(cacheTrips, String(trips.length));
         }
@@ -2736,10 +2736,13 @@ const HOME = {
 
     dotEl?.classList.remove('active');
     setLS('wob_ia', JSON.stringify(lines));
-    this._renderProjections(avg, trips.length);
+    // Performance calculée indépendamment dans updateDashboard — pas ici
   },
 
   _renderProjections(avgPerTrip, tripsCount) {
+    // Conservé pour compatibilité mais vidé — voir updatePerfWidget()
+  },
+  _renderProjections_unused(avgPerTrip, tripsCount) {
     // Projections supprimées — widget Performances & Carburant uniquement
     // Alimenter widget Performances & Carburant (mis à jour à chaque recalcul)
     const _conso = parseFloat(ls('wob_conso')) || 6.5;
