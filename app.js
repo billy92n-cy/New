@@ -158,10 +158,16 @@ const WOD_IA = {
     }
 
     const d = this._buildDriverContext();
-    if (!d.goals.day || d.goals.day === 0) {
-      el.innerHTML = '<div style="font-size:.75rem;color:var(--text-dim);">Définissez un objectif journalier pour activer le planning automatique.</div>';
+    // Lire goals depuis toutes les sources possibles
+    const goalDay = d.goals?.day
+      || parseFloat(document.getElementById('goal-day')?.value || '0')
+      || parseFloat(localStorage.getItem('wob_goals') ? JSON.parse(localStorage.getItem('wob_goals')).day : 0)
+      || 0;
+    if (!goalDay || goalDay === 0) {
+      el.innerHTML = '<div style="font-size:.75rem;color:var(--text-dim);">Définissez un objectif journalier pour activer le planning.</div>';
       return;
     }
+    d.goals.day = goalDay; // s'assurer que le contexte est à jour
 
     el.innerHTML = '<div style="font-size:.75rem;color:var(--text-dim);">🤖 Génération de votre planning...</div>';
 
@@ -834,6 +840,18 @@ function updateDashboard() {
 
   // Projections IA
   updateProjections(net, fuel);
+
+  // ── Widget Performances & Carburant (autonome, mis à jour à chaque course) ──
+  const _mins  = state.sessions.reduce((s, t) => s + (t.duree || 0), 0);
+  const _hrly  = _mins > 0 ? (state.totalGain / _mins) * 60 : 0;
+  const _fuelL = state.totalKm * (conso / 100);
+  const _fuelE = _fuelL * prix;
+  const _ratioKm = state.totalKm > 0 ? net / state.totalKm : 0;
+  const _set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+  _set('perf-hourly',    _hrly    > 0 ? _hrly.toFixed(1)    + ' €' : '—');
+  _set('perf-fuel-cost', _fuelE   > 0 ? _fuelE.toFixed(2)   + ' €' : '—');
+  _set('perf-fuel-l',    _fuelL   > 0 ? _fuelL.toFixed(1)   + ' L' : '—');
+  _set('perf-ratio-km',  _ratioKm > 0 ? _ratioKm.toFixed(2) + ' €' : '—');
 }
 
 function setProgress(id, pct) {
@@ -901,23 +919,7 @@ function refreshCharts() {
   setText('kpi-rate',  `${pct}%`);
   setText('kpi-hours', `${Math.round(state.totalKm/30)}h`);
 
-  // ── Widget Performances & Carburant — autonome, basé sur les courses ──
-  (function updatePerfTiles() {
-    const conso  = parseFloat(ls('wob_conso')) || 6.5;
-    const pCarb  = parseFloat(ls('wob_prix'))  || 1.85;
-    const km     = state.totalKm || 0;
-    const mins   = state.sessions.reduce((s, t) => s + (t.duree || 0), 0);
-    const gain   = state.totalGain || 0;
-    const fuelL  = km * (conso / 100);
-    const fuelE  = fuelL * pCarb;
-    const hrly   = mins > 0 ? (gain / mins) * 60 : 0;
-    const ratioK = km  > 0 ? gain / km : 0;
-    const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
-    set('perf-hourly',    hrly   > 0 ? hrly.toFixed(1)   + ' €' : '—');
-    set('perf-fuel-cost', fuelE  > 0 ? fuelE.toFixed(2)  + ' €' : '—');
-    set('perf-fuel-l',    fuelL  > 0 ? fuelL.toFixed(1)  + ' L' : '—');
-    set('perf-ratio-km',  ratioK > 0 ? ratioK.toFixed(2) + ' €' : '—');
-  })();
+  // Performances calculées dans updateDashboard()
 
   // Revenus bar
   const c1 = $('canvas-revenus');
